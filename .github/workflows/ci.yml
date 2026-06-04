@@ -48,8 +48,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check Docker secrets
+        id: check_secrets
+        run: |
+          # Determine if required secrets are present. We avoid referencing
+          # secrets in expression `if:` to prevent parse-time errors.
+          if [ -z "${{ secrets.DOCKER_REGISTRY }}" ] || [ -z "${{ secrets.DOCKER_USERNAME }}" ] || [ -z "${{ secrets.DOCKER_PASSWORD }}" ]; then
+            echo "secrets_missing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "secrets_missing=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Login to registry
-        if: ${{ secrets.DOCKER_REGISTRY && secrets.DOCKER_USERNAME && secrets.DOCKER_PASSWORD }}
+        if: ${{ steps.check_secrets.outputs.secrets_missing == 'false' }}
         uses: docker/login-action@v2
         with:
           registry: ${{ secrets.DOCKER_REGISTRY }}
@@ -57,7 +68,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push image
-        if: ${{ secrets.DOCKER_REGISTRY && secrets.DOCKER_USERNAME && secrets.DOCKER_PASSWORD }}
+        if: ${{ steps.check_secrets.outputs.secrets_missing == 'false' }}
         uses: docker/build-push-action@v4
         with:
           context: .
