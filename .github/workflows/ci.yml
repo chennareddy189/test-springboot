@@ -40,7 +40,21 @@ jobs:
       - name: Build with Maven
         run: mvn -B -U clean verify
 
+      - name: Check for built JAR
+        id: check_jar
+        run: |
+          echo "Listing target/"
+          ls -la target || true
+          if ls target/*.jar 1> /dev/null 2>&1; then
+            echo "jar_found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "jar_found=false" >> "$GITHUB_OUTPUT"
+            echo "ERROR: No JAR found in target/. Check the build logs above." >&2
+            exit 1
+          fi
+
       - name: Upload jar artifact
+        if: ${{ steps.check_jar.outputs.jar_found == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-jar
