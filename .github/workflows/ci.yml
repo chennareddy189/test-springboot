@@ -107,5 +107,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_REGISTRY }}/simple-spring-cicd:latest
+            ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/simple-spring-cicd:latest
 
