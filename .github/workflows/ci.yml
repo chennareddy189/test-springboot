@@ -42,12 +42,14 @@ jobs:
     name: Build and push Docker image (optional)
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ secrets.DOCKER_REGISTRY && secrets.DOCKER_USERNAME && secrets.DOCKER_PASSWORD }}
+    # Do not use `secrets` in a job-level `if:` — the workflow parser cannot resolve
+    # `secrets` there. Instead check secrets on the individual steps that need them.
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Login to registry
+        if: ${{ secrets.DOCKER_REGISTRY && secrets.DOCKER_USERNAME && secrets.DOCKER_PASSWORD }}
         uses: docker/login-action@v2
         with:
           registry: ${{ secrets.DOCKER_REGISTRY }}
@@ -55,6 +57,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push image
+        if: ${{ secrets.DOCKER_REGISTRY && secrets.DOCKER_USERNAME && secrets.DOCKER_PASSWORD }}
         uses: docker/build-push-action@v4
         with:
           context: .
