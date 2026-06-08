@@ -141,6 +141,27 @@ jobs:
           mv kubeconfig $HOME/.kube/config
           chmod 600 $HOME/.kube/config
 
+      - name: Create imagePullSecret (if registry credentials provided)
+        if: ${{ steps.check_kube.outputs.kube_missing == 'false' }}
+        env:
+          DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          # Only attempt to create the secret when registry creds are provided.
+          if [ -z "${DOCKER_REGISTRY}" ] || [ -z "${DOCKER_USERNAME}" ] || [ -z "${DOCKER_PASSWORD}" ]; then
+            echo "No registry credentials provided; skipping imagePullSecret creation."
+          else
+            echo "Creating/patching imagePullSecret 'regcred' in current namespace"
+            kubectl create secret docker-registry regcred \
+              --docker-server="${DOCKER_REGISTRY}" \
+              --docker-username="${DOCKER_USERNAME}" \
+              --docker-password="${DOCKER_PASSWORD}" \
+              --docker-email="ci@example.com" || true
+            # Patch default serviceaccount in the namespace so pods will use the secret by default
+            kubectl patch serviceaccount default -p '{"imagePullSecrets":[{"name":"regcred"}]}' || true
+          fi
+
       - name: Deploy manifests and update image
         if: ${{ steps.check_kube.outputs.kube_missing == 'false' }}
         env:
@@ -150,7 +171,8 @@ jobs:
         run: |
           echo "Using image: $IMAGE_NAME"
           # Update the deployment image (no-op if the deployment doesn't yet exist)
-          kubectl set image deployment/simple-spring simple-spring=$IMAGE_NAME --record || true
+          # --record is deprecated; omit it to avoid warnings
+          kubectl set image deployment/simple-spring simple-spring=$IMAGE_NAME || true
           # Apply local manifests (will create or update resources)
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
