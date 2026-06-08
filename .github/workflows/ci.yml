@@ -109,3 +109,49 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/simple-spring-cicd:latest
 
+  deploy:
+    name: Deploy to Kubernetes (optional)
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Check for KUBE_CONFIG_DATA secret
+        id: check_kube
+        run: |
+          if [ -z "${{ secrets.KUBE_CONFIG_DATA }}" ]; then
+            echo "kube_missing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "kube_missing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure kubeconfig
+        if: ${{ steps.check_kube.outputs.kube_missing == 'false' }}
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+        run: |
+          echo "$KUBE_CONFIG_DATA" | base64 --decode > kubeconfig
+          mkdir -p $HOME/.kube
+          mv kubeconfig $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Deploy manifests and update image
+        if: ${{ steps.check_kube.outputs.kube_missing == 'false' }}
+        env:
+          # You can override IMAGE_NAME by setting a repo secret IMAGE_NAME, otherwise falls back
+          # to the same image tag used in the Docker job.
+          IMAGE_NAME: ${{ secrets.IMAGE_NAME || format('{0}/{1}/simple-spring-cicd:latest', secrets.DOCKER_REGISTRY, secrets.DOCKER_USERNAME) }}
+        run: |
+          echo "Using image: $IMAGE_NAME"
+          # Update the deployment image (no-op if the deployment doesn't yet exist)
+          kubectl set image deployment/simple-spring simple-spring=$IMAGE_NAME --record || true
+          # Apply local manifests (will create or update resources)
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+
