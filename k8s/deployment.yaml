@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-spring
+  labels:
+    app: simple-spring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: simple-spring
+  template:
+    metadata:
+      labels:
+        app: simple-spring
+    spec:
+      # If your image is in a private registry, create a docker-registry secret
+      # and set it here as `imagePullSecrets` (example README shows how).
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: simple-spring
+        # REPLACE this image with your registry and repo (example: ghcr.io/OWNER/simple-spring-cicd:latest)
+        image: ghcr.io/chennareddy189/simple-spring-cicd:latest
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: default
+
