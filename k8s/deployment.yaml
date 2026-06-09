@@ -27,18 +27,20 @@ spec:
         # The application exposes /health (controller) not /actuator/health by default.
         # Use /health for readiness and liveness so probes succeed. If you enable
         # Spring Actuator later, you can switch back to /actuator/health.
+        # Use Spring Boot Actuator health endpoint for probes. Increased
+        # initial delays to give the JVM time to start before probes run.
         readinessProbe:
           httpGet:
-            path: /health
+            path: /actuator/health
             port: 8080
-          initialDelaySeconds: 10
+          initialDelaySeconds: 20
           periodSeconds: 10
           failureThreshold: 3
         livenessProbe:
           httpGet:
-            path: /health
+            path: /actuator/health
             port: 8080
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 20
           failureThreshold: 3
         resources:
