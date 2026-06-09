@@ -18,7 +18,7 @@ public class HelloController {
     @GetMapping("hello")
     public ResponseEntity<Map<String, String>> hello() {
         log.info("GET /hello called");
-        return ResponseEntity.ok(Map.of("message", "Hello, world!"));
+        return ResponseEntity.ok(Map.of("message", "Hello, JAVA,Spring boot, Docker, git hub and K8 !"));
     }
 
     @GetMapping("health")
