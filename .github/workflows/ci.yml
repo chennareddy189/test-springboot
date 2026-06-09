@@ -122,9 +122,12 @@ jobs:
   deploy:
     name: Deploy to Kubernetes (optional)
     needs: docker
-    # Run deploy on your self-hosted runner so it can access local kubernetes clusters
-    # Make sure the runner was configured with labels: self-hosted, macos, local
-    runs-on: [self-hosted, macos, local]
+    # Run deploy on your self-hosted runner so it can access local kubernetes clusters.
+    # Your runner labels (shown in GitHub) are: self-hosted, macOS, arm64
+    # Labels are case-sensitive. Use labels that match the runner, or reconfigure
+    # the runner to add/remove labels. The simplest option is to match these
+    # existing labels below.
+    runs-on: [self-hosted, 'macOS', 'arm64']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
