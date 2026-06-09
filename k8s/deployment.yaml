@@ -24,16 +24,19 @@ spec:
         image: ghcr.io/chennareddy189/simple-spring-cicd:latest
         ports:
         - containerPort: 8080
+        # The application exposes /health (controller) not /actuator/health by default.
+        # Use /health for readiness and liveness so probes succeed. If you enable
+        # Spring Actuator later, you can switch back to /actuator/health.
         readinessProbe:
           httpGet:
-            path: /actuator/health
+            path: /health
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 10
           failureThreshold: 3
         livenessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 20
