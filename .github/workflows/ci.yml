@@ -140,6 +140,27 @@ jobs:
           mkdir -p $HOME/.kube
           mv kubeconfig $HOME/.kube/config
           chmod 600 $HOME/.kube/config
+          # Ensure kubectl uses the written config
+          export KUBECONFIG=$HOME/.kube/config
+
+      - name: Verify cluster access
+        if: ${{ steps.check_kube.outputs.kube_missing == 'false' }}
+        run: |
+          # Show client version
+          kubectl version --client || true
+          # Show current context (does not reveal credentials)
+          kubectl config current-context || true
+          # Try a lightweight API call to confirm the API server is reachable
+          if kubectl get ns >/dev/null 2>&1; then
+            echo "Kubernetes API reachable"
+          else
+            echo "ERROR: kubectl cannot reach the API server. Check the provided KUBE_CONFIG_DATA and that the target cluster is running." >&2
+            echo "kubectl config view (minified):"
+            kubectl config view --minify || true
+            echo "kubectl cluster-info output:" || true
+            kubectl cluster-info || true
+            exit 1
+          fi
 
       - name: Create imagePullSecret (if registry credentials provided)
         if: ${{ steps.check_kube.outputs.kube_missing == 'false' }}
@@ -173,7 +194,14 @@ jobs:
           # Update the deployment image (no-op if the deployment doesn't yet exist)
           # --record is deprecated; omit it to avoid warnings
           kubectl set image deployment/simple-spring simple-spring=$IMAGE_NAME || true
-          # Apply local manifests (will create or update resources)
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
+          # Apply local manifests (will create or update resources). If API server is temporarily unreachable
+          # fallback to applying without validation to avoid openapi validation failures in some environments.
+          if ! kubectl apply -f k8s/deployment.yaml; then
+            echo "kubectl apply failed; retrying with --validate=false"
+            kubectl apply --validate=false -f k8s/deployment.yaml
+          fi
+          if ! kubectl apply -f k8s/service.yaml; then
+            echo "kubectl apply failed; retrying with --validate=false"
+            kubectl apply --validate=false -f k8s/service.yaml
+          fi
 
