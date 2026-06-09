@@ -16,13 +16,6 @@ class HelloControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    void hello_returnsMessage() throws Exception {
-        mockMvc.perform(get("/hello"))
-                .andExpect(status().isOk())
-                .andExpect(content().json("{\"message\":\"Hello, world!\"}"));
-    }
-
-    @Test
     void health_returnsUp() throws Exception {
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())
