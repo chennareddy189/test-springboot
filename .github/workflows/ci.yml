@@ -1,3 +1,13 @@
+# CI workflow for SimpleJavaProject
+# Notes:
+# - Keeps build and docker jobs running on GitHub-hosted runners (ubuntu-latest).
+# - The `deploy` job can be run on a self-hosted runner when you need access to a
+#   local Kubernetes cluster. To run `deploy` on a self-hosted runner, change
+#   `runs-on: ubuntu-latest` for that job to something like
+#     runs-on: [self-hosted, macos, local]
+#   Make sure the self-hosted runner labels match and the runner is online.
+# - If you prefer to run an ephemeral cluster inside CI for testing, consider
+#   adding a `kind` setup step to create a local cluster inside the workflow.
 name: CI
 
 on:
@@ -112,7 +122,9 @@ jobs:
   deploy:
     name: Deploy to Kubernetes (optional)
     needs: docker
-    runs-on: ubuntu-latest
+    # Run deploy on your self-hosted runner so it can access local kubernetes clusters
+    # Make sure the runner was configured with labels: self-hosted, macos, local
+    runs-on: [self-hosted, macos, local]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
