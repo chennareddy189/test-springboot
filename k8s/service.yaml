@@ -8,6 +8,7 @@ spec:
     app: simple-spring
   ports:
   - protocol: TCP
-    port: 80
+    # Expose port 8080 on the Service so you can port-forward 8080:8080
+    port: 8080
     targetPort: 8080
 
